@@ -1,4 +1,4 @@
-package pos
+package pospace
 
 import (
 	"encoding/binary"
@@ -12,7 +12,7 @@ type Verifier struct {
 	beta int    // number of challenges needed
 	root []byte // root hash
 
-	graph *Graph
+	graph Graph
 	index int64 // index of the graphy in the family
 	size  int64
 	pow2  int64
@@ -28,7 +28,7 @@ func NewVerifier(pk []byte, index int64, beta int, root []byte) *Verifier {
 		pow2 = 1 << uint64(log2)
 	}
 
-	graph := &Graph{
+	graph := &XiGraph{
 		pk:    pk,
 		index: index,
 		log2:  log2,

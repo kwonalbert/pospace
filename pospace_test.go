@@ -1,4 +1,4 @@
-package pos
+package pospace
 
 import (
 	"crypto/rand"

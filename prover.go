@@ -1,14 +1,13 @@
-package pos
+package pospace
 
 import (
 	//"fmt"
-	"github.com/kwonalbert/spacemint/util"
 	"golang.org/x/crypto/sha3"
 )
 
 type Prover struct {
 	pk    []byte
-	graph *Graph // storage for all the graphs
+	graph Graph // storage for all the graphs
 	name  string
 
 	commit []byte // root hash of the merkle tree
@@ -27,20 +26,20 @@ type Commitment struct {
 
 func NewProver(pk []byte, index int64, name, graph string) *Prover {
 	size := numXi(index)
-	log2 := util.Log2(size) + 1
+	log2 := Log2(size) + 1
 	pow2 := int64(1 << uint64(log2))
 	if (1 << uint64(log2-1)) == size {
 		log2--
 		pow2 = 1 << uint64(log2)
 	}
 
-	g := NewGraph(index, size, pow2, log2, graph, pk)
+	g := NewGraph(TYPE1, index, size, pow2, log2, graph, pk)
 
 	empty := make(map[int64]bool)
 
 	// if not power of 2, then uneven merkle
-	if util.Count(uint64(size)) != 1 {
-		for i := pow2 + size; util.Count(uint64(i+1)) != 1; i /= 2 {
+	if Count(uint64(size)) != 1 {
+		for i := pow2 + size; Count(uint64(i+1)) != 1; i /= 2 {
 			empty[i+1] = true
 		}
 	}
@@ -79,10 +78,10 @@ func (p *Prover) Init() *Commitment {
 // Read the commitment from pre-initialized graph
 func (p *Prover) PreInit() *Commitment {
 	node := p.graph.GetId(2*p.pow2 - 1)
-	p.commit = node.H
+	p.commit = node.GetHash()
 	commit := &Commitment{
 		Pk:     p.pk,
-		Commit: node.H,
+		Commit: p.commit,
 	}
 	return commit
 }
@@ -112,7 +111,7 @@ func (p *Prover) generateMerkle() []byte {
 		}
 
 		if empty {
-			count += p.graph.subtree(cur)
+			count += subtree(p.log2, cur)
 			hashStack = append(hashStack, make([]byte, hashSize))
 		}
 
@@ -133,7 +132,7 @@ func (p *Prover) generateMerkle() []byte {
 			} else {
 				n := p.graph.GetId(count)
 				count++
-				hashStack = append(hashStack, n.H)
+				hashStack = append(hashStack, n.GetHash())
 			}
 		} else if !p.emptyMerkle(cur) {
 			hash2 := hashStack[len(hashStack)-1]
@@ -160,7 +159,7 @@ func (p *Prover) Open(node int64) ([]byte, [][]byte) {
 	var hash []byte
 	n := p.graph.GetNode(node + p.pow2)
 	if n != nil {
-		hash = n.H
+		hash = n.GetHash()
 	} else {
 		hash = make([]byte, hashSize)
 	}
@@ -183,7 +182,7 @@ func (p *Prover) Open(node int64) ([]byte, [][]byte) {
 		}
 
 		n := p.graph.GetNode(sib)
-		proof[count] = n.H
+		proof[count] = n.GetHash()
 		count++
 	}
 	return hash, proof
