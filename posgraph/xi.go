@@ -1,7 +1,8 @@
-package pospace
+package posgraph
 
 import (
 	"encoding/binary"
+	"github.com/kwonalbert/pospace/util"
 	"golang.org/x/crypto/sha3"
 	"os"
 )
@@ -31,6 +32,16 @@ func (n *XiNode) UnmarshalBinary(data []byte) error {
 
 func (n *XiNode) GetHash() []byte {
 	return n.H
+}
+
+func NewEmptyXiGraph(index, size, pow2, log2 int64, pk []byte) *XiGraph {
+	return &XiGraph{
+		pk:    pk,
+		index: index,
+		log2:  log2,
+		pow2:  pow2,
+		size:  size,
+	}
 }
 
 func (g *XiGraph) NewNodeById(id int64, hash []byte) {
@@ -68,13 +79,13 @@ func (g *XiGraph) WriteId(node Node, id int64) {
 }
 
 func (g *XiGraph) GetNode(id int64) Node {
-	idx := bfsToPost(g.pow2, g.log2, id)
+	idx := util.BfsToPost(g.pow2, g.log2, id)
 	//fmt.Println("read", idx)
 	return g.GetId(idx)
 }
 
 func (g *XiGraph) WriteNode(node Node, id int64) {
-	idx := bfsToPost(g.pow2, g.log2, id)
+	idx := util.BfsToPost(g.pow2, g.log2, id)
 	//fmt.Println("write", idx)
 	g.WriteId(node, idx)
 }
@@ -137,8 +148,8 @@ func (g *XiGraph) getGraph(node, index int64) (int64, int64) {
 	pow2index_1 := int64(1 << uint64(index-1))
 	sources := pow2index
 	firstButter := sources + numButterfly(index-1)
-	firstXi := firstButter + numXi(index-1)
-	secondXi := firstXi + numXi(index-1)
+	firstXi := firstButter + NumXi(index-1)
+	secondXi := firstXi + NumXi(index-1)
 	secondButter := secondXi + numButterfly(index-1)
 	sinks := secondButter + sources
 
@@ -166,7 +177,7 @@ func (g *XiGraph) getGraph(node, index int64) (int64, int64) {
 		}
 	} else if node >= secondButter && node < sinks {
 		offset := (node - secondButter) % pow2index_1
-		parent1 := sinks - numXi(index) + offset
+		parent1 := sinks - NumXi(index) + offset
 		if offset+secondButter == node {
 			return pow2index_1, node - parent1
 		} else {
@@ -177,7 +188,7 @@ func (g *XiGraph) getGraph(node, index int64) (int64, int64) {
 	}
 }
 
-func numXi(index int64) int64 {
+func NumXi(index int64) int64 {
 	return (1 << uint64(index)) * (index + 1) * index
 }
 
@@ -326,7 +337,7 @@ func (g *XiGraph) XiGraphIter(index int64) {
 			}
 		} else {
 			sinks := count
-			sources := sinks + pow2index - numXi(index)
+			sources := sinks + pow2index - NumXi(index)
 			for i = 0; i < pow2index_1; i++ {
 				nodeId0 := sinks + i
 				nodeId1 := sinks + i + pow2index_1
@@ -393,8 +404,8 @@ func (g *XiGraph) XiGraph(index int64, count *int64) {
 	sources := *count - pow2index
 	firstButter := sources + pow2index
 	firstXi := firstButter + numButterfly(index-1)
-	secondXi := firstXi + numXi(index-1)
-	secondButter := secondXi + numXi(index-1)
+	secondXi := firstXi + NumXi(index-1)
+	secondButter := secondXi + NumXi(index-1)
 	sinks := secondButter + numButterfly(index-1)
 	pow2index_1 := int64(1 << uint64(index-1))
 

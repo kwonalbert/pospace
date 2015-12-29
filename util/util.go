@@ -1,4 +1,4 @@
-package pospace
+package util
 
 import (
 	"math/big"
@@ -64,4 +64,28 @@ func Count(x uint64) int {
 	x = x + (x >> 8)
 	x = x + (x >> 16)
 	return int(x & 0x0000003F)
+}
+
+func Subtree(log2, node int64) int64 {
+	level := (log2 + 1) - Log2(node)
+	return int64((1 << uint64(level)) - 1)
+}
+
+// post-order is better for disk than bfs
+func BfsToPost(pow2, log2, node int64) int64 {
+	if node == 0 {
+		return 0
+	}
+	cur := node
+	res := int64(0)
+	for cur != 1 {
+		if cur%2 == 0 {
+			res -= (Subtree(log2, cur) + 1)
+		} else {
+			res--
+		}
+		cur /= 2
+	}
+	res += 2*pow2 - 1
+	return res
 }

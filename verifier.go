@@ -3,7 +3,8 @@ package pospace
 import (
 	"encoding/binary"
 	//"fmt"
-	"github.com/kwonalbert/spacemint/util"
+	"github.com/kwonalbert/pospace/posgraph"
+	"github.com/kwonalbert/pospace/util"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -12,7 +13,7 @@ type Verifier struct {
 	beta int    // number of challenges needed
 	root []byte // root hash
 
-	graph Graph
+	graph posgraph.Graph
 	index int64 // index of the graphy in the family
 	size  int64
 	pow2  int64
@@ -20,7 +21,7 @@ type Verifier struct {
 }
 
 func NewVerifier(pk []byte, index int64, beta int, root []byte) *Verifier {
-	size := numXi(index)
+	size := posgraph.NumXi(index)
 	log2 := util.Log2(size) + 1
 	pow2 := int64(1 << uint64(log2))
 	if (1 << uint64(log2-1)) == size {
@@ -28,13 +29,7 @@ func NewVerifier(pk []byte, index int64, beta int, root []byte) *Verifier {
 		pow2 = 1 << uint64(log2)
 	}
 
-	graph := &XiGraph{
-		pk:    pk,
-		index: index,
-		log2:  log2,
-		pow2:  pow2,
-		size:  size,
-	}
+	graph := posgraph.NewEmptyXiGraph(index, size, pow2, log2, pk)
 
 	v := Verifier{
 		pk:   pk,

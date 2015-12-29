@@ -1,4 +1,4 @@
-package pospace
+package posgraph
 
 import (
 	//"fmt"
@@ -6,7 +6,13 @@ import (
 	//"runtime/pprof"
 )
 
+const hashSize = 256 / 8
 const nodeSize = hashSize
+
+const (
+	TYPE1 = iota // Xi graph
+	TYPE2 = iota // EGS graph
+)
 
 type Graph interface {
 	NewNodeById(id int64, hash []byte)
@@ -59,28 +65,4 @@ func NewGraph(t int, index, size, pow2, log2 int64, fn string, pk []byte) Graph 
 	}
 
 	return g
-}
-
-func subtree(log2, node int64) int64 {
-	level := (log2 + 1) - Log2(node)
-	return int64((1 << uint64(level)) - 1)
-}
-
-// post-order is better for disk than bfs
-func bfsToPost(pow2, log2, node int64) int64 {
-	if node == 0 {
-		return 0
-	}
-	cur := node
-	res := int64(0)
-	for cur != 1 {
-		if cur%2 == 0 {
-			res -= (subtree(log2, cur) + 1)
-		} else {
-			res--
-		}
-		cur /= 2
-	}
-	res += 2*pow2 - 1
-	return res
 }

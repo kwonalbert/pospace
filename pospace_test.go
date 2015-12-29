@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"flag"
 	"fmt"
+	"github.com/kwonalbert/pospace/posgraph"
 	"log"
 	"os"
 	"runtime"
@@ -37,7 +38,7 @@ func TestPoS(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	size = numXi(index)
+	size = posgraph.NumXi(index)
 	pk = []byte{1}
 
 	runtime.GOMAXPROCS(runtime.NumCPU())

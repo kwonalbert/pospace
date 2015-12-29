@@ -2,12 +2,14 @@ package pospace
 
 import (
 	//"fmt"
+	"github.com/kwonalbert/pospace/posgraph"
+	"github.com/kwonalbert/pospace/util"
 	"golang.org/x/crypto/sha3"
 )
 
 type Prover struct {
 	pk    []byte
-	graph Graph // storage for all the graphs
+	graph posgraph.Graph // storage for all the graphs
 	name  string
 
 	commit []byte // root hash of the merkle tree
@@ -25,21 +27,21 @@ type Commitment struct {
 }
 
 func NewProver(pk []byte, index int64, name, graph string) *Prover {
-	size := numXi(index)
-	log2 := Log2(size) + 1
+	size := posgraph.NumXi(index)
+	log2 := util.Log2(size) + 1
 	pow2 := int64(1 << uint64(log2))
 	if (1 << uint64(log2-1)) == size {
 		log2--
 		pow2 = 1 << uint64(log2)
 	}
 
-	g := NewGraph(TYPE1, index, size, pow2, log2, graph, pk)
+	g := posgraph.NewGraph(TYPE1, index, size, pow2, log2, graph, pk)
 
 	empty := make(map[int64]bool)
 
 	// if not power of 2, then uneven merkle
-	if Count(uint64(size)) != 1 {
-		for i := pow2 + size; Count(uint64(i+1)) != 1; i /= 2 {
+	if util.Count(uint64(size)) != 1 {
+		for i := pow2 + size; util.Count(uint64(i+1)) != 1; i /= 2 {
 			empty[i+1] = true
 		}
 	}
@@ -111,7 +113,7 @@ func (p *Prover) generateMerkle() []byte {
 		}
 
 		if empty {
-			count += subtree(p.log2, cur)
+			count += util.Subtree(p.log2, cur)
 			hashStack = append(hashStack, make([]byte, hashSize))
 		}
 
