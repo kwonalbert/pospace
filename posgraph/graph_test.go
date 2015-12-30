@@ -1,10 +1,10 @@
 package posgraph
 
 import (
-	"encoding/binary"
+	//"encoding/binary"
 	"flag"
-	"fmt"
-	"github.com/boltdb/bolt"
+	//"fmt"
+	//"github.com/boltdb/bolt"
 	"github.com/kwonalbert/pospace/util"
 	"log"
 	"os"
@@ -19,26 +19,25 @@ var graphDir string = ""
 var log2 int64
 var pow2 int64
 
-func TestEmpty(t *testing.T) {
+func TestGen(t *testing.T) {
 	now := time.Now()
-	graph := NewGraph(XI, graphDir, index)
+	_ = NewGraph(XI, graphDir, index)
 	log.Printf("%d. Graph gen: %fs\n", index, time.Since(now).Seconds())
 
-	graph.GetDB().View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Graph"))
-		c := b.Cursor()
+	// graph.GetDB().View(func(tx *bolt.Tx) error {
+	// 	b := tx.Bucket([]byte("Graph"))
+	// 	c := b.Cursor()
 
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			key, _ := binary.Varint(k)
-			parents := make([]int64, len(v)/8)
-			for i := range parents {
-				parents[i], _ = binary.Varint(v[i*8 : (i+1)*8])
-			}
-			fmt.Println("key: ", key, ", parents: ", parents)
-		}
+	// 	for k, v := c.First(); k != nil; k, v = c.Next() {
+	// 		key, _ := binary.Varint(k)
+	// 		parents := make([]int64, len(v)/8)
+	// 		for i := range parents {
+	// 			parents[i], _ = binary.Varint(v[i*8 : (i+1)*8])
+	// 		}
+	// 	}
 
-		return nil
-	})
+	// 	return nil
+	// })
 }
 
 func TestMain(m *testing.M) {

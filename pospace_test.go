@@ -43,11 +43,9 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 	index = int64(*id)
 
-	now := time.Now()
 	prover = NewProver(pk, index, graphDir, ".")
-	fmt.Printf("%d. Graph gen: %fs\n", index, time.Since(now).Seconds())
 
-	now = time.Now()
+	now := time.Now()
 	commit := prover.Init()
 	fmt.Printf("%d. Graph commit: %fs\n", index, time.Since(now).Seconds())
 
