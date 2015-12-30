@@ -1,18 +1,20 @@
 package pospace
 
 import (
-	//"fmt"
+	"encoding/binary"
+	"fmt"
 	"github.com/kwonalbert/pospace/posgraph"
 	"github.com/kwonalbert/pospace/util"
 	"golang.org/x/crypto/sha3"
+	"os"
 )
 
 type Prover struct {
 	pk    []byte
 	graph posgraph.Graph // storage for all the graphs
-	name  string
 
-	commit []byte // root hash of the merkle tree
+	commit []byte   // root hash of the merkle tree
+	space  *os.File // file that stores all hashes
 
 	index int64 // index of the graphy in the family; power of 2
 	size  int64 // size of the graph
@@ -26,8 +28,10 @@ type Commitment struct {
 	Commit []byte
 }
 
-func NewProver(pk []byte, index int64, name, graph string) *Prover {
-	size := posgraph.NumXi(index)
+func NewProver(pk []byte, index int64, graphDir, spaceDir string) *Prover {
+	g := posgraph.NewGraph(XI, graphDir, index)
+
+	size := g.GetSize()
 	log2 := util.Log2(size) + 1
 	pow2 := int64(1 << uint64(log2))
 	if (1 << uint64(log2-1)) == size {
@@ -35,10 +39,7 @@ func NewProver(pk []byte, index int64, name, graph string) *Prover {
 		pow2 = 1 << uint64(log2)
 	}
 
-	g := posgraph.NewGraph(TYPE1, index, size, pow2, log2, graph, pk)
-
 	empty := make(map[int64]bool)
-
 	// if not power of 2, then uneven merkle
 	if util.Count(uint64(size)) != 1 {
 		for i := pow2 + size; util.Count(uint64(i+1)) != 1; i /= 2 {
@@ -46,10 +47,15 @@ func NewProver(pk []byte, index int64, name, graph string) *Prover {
 		}
 	}
 
+	f, err := os.Create(fmt.Sprintf("%s/Space-%d", spaceDir, index))
+	if err != nil {
+		panic(err)
+	}
+
 	p := Prover{
 		pk:    pk,
 		graph: g,
-		name:  name,
+		space: f,
 
 		index: index,
 		size:  size,
@@ -60,12 +66,48 @@ func NewProver(pk []byte, index int64, name, graph string) *Prover {
 	return &p
 }
 
+func (p *Prover) GetHash(id int64) []byte {
+	data := make([]byte, hashSize)
+	n, err := p.space.ReadAt(data, id*hashSize)
+	if err != nil || n != hashSize {
+		panic(err)
+	}
+	return data
+}
+
+func (p *Prover) PutHash(id int64, data []byte) {
+	n, err := p.space.WriteAt(data, id*hashSize)
+	if err != nil || n != hashSize {
+		panic(err)
+	}
+}
+
+// Assuming topo-sorted..
+func (p *Prover) initGraph() {
+	for i := int64(0); i < p.size; i++ {
+		var ph []byte
+		parents := p.graph.GetParents(i, p.index)
+		for _, parent := range parents {
+			pid := util.BfsToPost(p.pow2, p.log2, parent+p.pow2)
+			ph = append(ph, p.GetHash(pid)...)
+		}
+		buf := make([]byte, 8)
+		binary.PutVarint(buf, i)
+		buf = append(p.pk, buf...)
+		buf = append(buf, ph...)
+		hash := sha3.Sum256(buf)
+		id := util.BfsToPost(p.pow2, p.log2, i+p.pow2)
+		p.PutHash(id, hash[:])
+	}
+}
+
 // Generate a merkle tree of the hashes of the vertices
 // return: root hash of the merkle tree
 //         will also write out the merkle tree
 func (p *Prover) Init() *Commitment {
 	// build the merkle tree in depth first fashion
 	// root node is 1
+	p.initGraph()
 	root := p.generateMerkle()
 	p.commit = root
 
@@ -79,8 +121,8 @@ func (p *Prover) Init() *Commitment {
 
 // Read the commitment from pre-initialized graph
 func (p *Prover) PreInit() *Commitment {
-	node := p.graph.GetId(2*p.pow2 - 1)
-	p.commit = node.GetHash()
+	hash := p.GetHash(2*p.pow2 - 1)
+	p.commit = hash
 	commit := &Commitment{
 		Pk:     p.pk,
 		Commit: p.commit,
@@ -132,9 +174,9 @@ func (p *Prover) generateMerkle() []byte {
 				hashStack = append(hashStack, make([]byte, hashSize))
 				count++
 			} else {
-				n := p.graph.GetId(count)
+				hash := p.GetHash(count)
 				count++
-				hashStack = append(hashStack, n.GetHash())
+				hashStack = append(hashStack, hash)
 			}
 		} else if !p.emptyMerkle(cur) {
 			hash2 := hashStack[len(hashStack)-1]
@@ -146,7 +188,7 @@ func (p *Prover) generateMerkle() []byte {
 
 			hashStack = append(hashStack, hash[:])
 
-			p.graph.NewNodeById(count, hash[:])
+			p.PutHash(count, hash[:])
 			count++
 		}
 		cur = 2 * p.pow2
@@ -158,13 +200,7 @@ func (p *Prover) generateMerkle() []byte {
 // Open a node in the merkle tree
 // return: hash of node, and the lgN hashes to verify node
 func (p *Prover) Open(node int64) ([]byte, [][]byte) {
-	var hash []byte
-	n := p.graph.GetNode(node + p.pow2)
-	if n != nil {
-		hash = n.GetHash()
-	} else {
-		hash = make([]byte, hashSize)
-	}
+	hash := p.GetHash(util.BfsToPost(p.pow2, p.log2, node+p.pow2))
 
 	proof := make([][]byte, p.log2)
 	count := 0
@@ -179,12 +215,9 @@ func (p *Prover) Open(node int64) ([]byte, [][]byte) {
 
 		if sib >= p.pow2+p.size || p.emptyMerkle(sib) {
 			proof[count] = make([]byte, hashSize)
-			count++
-			continue
+		} else {
+			proof[count] = p.GetHash(util.BfsToPost(p.pow2, p.log2, sib))
 		}
-
-		n := p.graph.GetNode(sib)
-		proof[count] = n.GetHash()
 		count++
 	}
 	return hash, proof

@@ -2,10 +2,10 @@ package pospace
 
 import (
 	"encoding/binary"
-	//"fmt"
 	"github.com/kwonalbert/pospace/posgraph"
 	"github.com/kwonalbert/pospace/util"
 	"golang.org/x/crypto/sha3"
+	//"log"
 )
 
 type Verifier struct {
@@ -20,16 +20,15 @@ type Verifier struct {
 	log2  int64
 }
 
-func NewVerifier(pk []byte, index int64, beta int, root []byte) *Verifier {
-	size := posgraph.NumXi(index)
+func NewVerifier(pk []byte, index int64, beta int, root []byte, graphDir string) *Verifier {
+	graph := posgraph.NewGraph(XI, graphDir, index)
+	size := graph.GetSize()
 	log2 := util.Log2(size) + 1
 	pow2 := int64(1 << uint64(log2))
 	if (1 << uint64(log2-1)) == size {
 		log2--
 		pow2 = 1 << uint64(log2)
 	}
-
-	graph := posgraph.NewEmptyXiGraph(index, size, pow2, log2, pk)
 
 	v := Verifier{
 		pk:   pk,
@@ -63,8 +62,8 @@ func (v *Verifier) SelectChallenges(seed []byte) []int64 {
 
 func (v *Verifier) VerifySpace(challenges []int64, hashes [][]byte, parents [][][]byte, proofs [][][]byte, pProofs [][][][]byte) bool {
 	for i := range challenges {
-		buf := make([]byte, hashSize)
-		binary.PutVarint(buf, challenges[i]+v.pow2)
+		buf := make([]byte, 8)
+		binary.PutVarint(buf, challenges[i])
 		val := append(v.pk, buf...)
 		for _, ph := range parents[i] {
 			val = append(val, ph...)

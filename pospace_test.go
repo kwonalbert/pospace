@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"flag"
 	"fmt"
-	"github.com/kwonalbert/pospace/posgraph"
 	"log"
 	"os"
 	"runtime"
@@ -17,10 +16,8 @@ var prover *Prover = nil
 var verifier *Verifier = nil
 var pk []byte
 var index int64 = 3
-var size int64 = 0
-var beta int = 30
-var graphDir string = "Xi"
-var name string = "G"
+var beta int = 1
+var graphDir string = "posgraph/test"
 
 func TestPoS(t *testing.T) {
 	seed := make([]byte, 64)
@@ -38,7 +35,6 @@ func TestPoS(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	size = posgraph.NumXi(index)
 	pk = []byte{1}
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -47,11 +43,8 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 	index = int64(*id)
 
-	graphDir = fmt.Sprintf("%s%d", graphDir, *id)
-	//os.RemoveAll(graphDir)
-
 	now := time.Now()
-	prover = NewProver(pk, index, name, graphDir)
+	prover = NewProver(pk, index, graphDir, ".")
 	fmt.Printf("%d. Graph gen: %fs\n", index, time.Since(now).Seconds())
 
 	now = time.Now()
@@ -59,7 +52,7 @@ func TestMain(m *testing.M) {
 	fmt.Printf("%d. Graph commit: %fs\n", index, time.Since(now).Seconds())
 
 	root := commit.Commit
-	verifier = NewVerifier(pk, index, beta, root)
+	verifier = NewVerifier(pk, index, beta, root, graphDir)
 
 	os.Exit(m.Run())
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"github.com/boltdb/bolt"
 	"github.com/kwonalbert/pospace/util"
-	"log"
+	//"log"
 
 	// "reflect"
 	// "unsafe"
@@ -47,7 +47,7 @@ func (g *XiGraph) NewNode(node int64, parents []int64) {
 	// header.Len *= 8
 	// header.Cap *= 8
 	// data := *(*[]byte)(unsafe.Pointer(&header))
-	log.Println("New node:", node, parents)
+	// log.Println("New node:", node, parents)
 
 	key := make([]byte, 8)
 	binary.PutVarint(key, node)
@@ -97,6 +97,10 @@ func (g *XiGraph) GetDB() *bolt.DB {
 
 func (g *XiGraph) GetType() int {
 	return XI
+}
+
+func (g *XiGraph) ChangeDB(db *bolt.DB) {
+	g.db = db
 }
 
 func (g *XiGraph) Close() {

@@ -30,6 +30,7 @@ type Graph interface {
 	GetParents(node, index int64) []int64
 	GetSize() int64
 	GetDB() *bolt.DB
+	ChangeDB(*bolt.DB)
 	Close()
 }
 
@@ -47,7 +48,12 @@ func NewGraph(t int, dir string, index int64) Graph {
 	_, err := os.Stat(fn)
 	fileExists := err == nil
 
-	db, err := bolt.Open(fn, 0600, nil)
+	var db *bolt.DB
+	if fileExists { //open it as read only
+		db, err = bolt.Open(fn, 0600, &bolt.Options{ReadOnly: true})
+	} else {
+		db, err = bolt.Open(fn, 0600, nil)
+	}
 	if err != nil {
 		panic("Failed to open database")
 	}
@@ -60,5 +66,13 @@ func NewGraph(t int, dir string, index int64) Graph {
 		return nil
 	})
 
-	return NewXiGraph(t, !fileExists, index, db)
+	g := NewXiGraph(t, !fileExists, index, db)
+	g.Close()
+	db, err = bolt.Open(fn, 0600, &bolt.Options{ReadOnly: true})
+	if err != nil {
+		panic("Failed to open database")
+	}
+	g.ChangeDB(db)
+
+	return g
 }
