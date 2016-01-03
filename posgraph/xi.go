@@ -1,7 +1,6 @@
 package posgraph
 
 import (
-	"encoding/binary"
 	"github.com/boltdb/bolt"
 	"github.com/kwonalbert/pospace/util"
 	//"log"
@@ -11,12 +10,12 @@ import (
 )
 
 type XiGraph struct {
-	GraphParam
+	Graph_
 }
 
 func NewXiGraph(t int, gen bool, index int64, db *bolt.DB) *XiGraph {
 	g := &XiGraph{
-		GraphParam{
+		Graph_{
 			index: index,
 			size:  numXi(index),
 		},
@@ -40,71 +39,6 @@ func NewXiGraph(t int, gen bool, index int64, db *bolt.DB) *XiGraph {
 	}
 
 	return g
-}
-
-func (g *XiGraph) NewNode(node int64, parents []int64) {
-	// header := *(*reflect.SliceHeader)(unsafe.Pointer(&parents))
-	// header.Len *= 8
-	// header.Cap *= 8
-	// data := *(*[]byte)(unsafe.Pointer(&header))
-	// log.Println("New node:", node, parents)
-
-	key := make([]byte, 8)
-	binary.PutVarint(key, node)
-	data := make([]byte, len(parents)*8)
-	for i := range parents {
-		binary.PutVarint(data[i*8:(i+1)*8], parents[i])
-	}
-
-	g.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Graph"))
-		err := b.Put(key, data)
-		return err
-	})
-}
-
-// compute parents of nodes
-func (g *XiGraph) GetParents(node, index int64) []int64 {
-	if node < int64(1<<uint64(index)) {
-		return nil
-	}
-
-	key := make([]byte, 8)
-	binary.PutVarint(key, node)
-
-	var data []byte
-	g.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Graph"))
-		data = b.Get(key)
-		return nil
-	})
-
-	parents := make([]int64, len(data)/8)
-	for i := range parents {
-		parents[i], _ = binary.Varint(data[i*8 : (i+1)*8])
-	}
-
-	return parents
-}
-
-func (g *XiGraph) GetSize() int64 {
-	return g.size
-}
-
-func (g *XiGraph) GetDB() *bolt.DB {
-	return g.db
-}
-
-func (g *XiGraph) GetType() int {
-	return XI
-}
-
-func (g *XiGraph) ChangeDB(db *bolt.DB) {
-	g.db = db
-}
-
-func (g *XiGraph) Close() {
-	g.db.Close()
 }
 
 func numXi(index int64) int64 {
@@ -135,7 +69,7 @@ func (g *XiGraph) butterflyGraph(index int64, count *int64) {
 			parents := []int64{begin + (level-1)*perLevel + prev,
 				*count - perLevel}
 
-			g.NewNode(*count, parents)
+			g.NewNodeP(*count, parents)
 			*count++
 		}
 	}
@@ -152,7 +86,7 @@ func (g *XiGraph) XiGraphIter(index int64) {
 	graph := 0
 	pow2index := int64(1 << uint64(index))
 	for i = 0; i < pow2index; i++ { //sources at this level
-		g.NewNode(count, nil)
+		g.NewNodeP(count, nil)
 		count++
 	}
 
@@ -179,7 +113,7 @@ func (g *XiGraph) XiGraphIter(index int64) {
 				parents := []int64{sources + i,
 					sources + i + pow2index_1}
 
-				g.NewNode(count, parents)
+				g.NewNodeP(count, parents)
 				count++
 			}
 		} else if graph == 1 {
@@ -188,7 +122,7 @@ func (g *XiGraph) XiGraphIter(index int64) {
 			for i = 0; i < pow2index_1; i++ {
 				nodeId := firstXi + i
 				parents := []int64{firstXi - pow2index_1 + i}
-				g.NewNode(nodeId, parents)
+				g.NewNodeP(nodeId, parents)
 				count++
 			}
 		} else if graph == 2 {
@@ -197,7 +131,7 @@ func (g *XiGraph) XiGraphIter(index int64) {
 			for i = 0; i < pow2index_1; i++ {
 				nodeId := secondXi + i
 				parents := []int64{secondXi - pow2index_1 + i}
-				g.NewNode(nodeId, parents)
+				g.NewNodeP(nodeId, parents)
 				count++
 			}
 		} else if graph == 3 {
@@ -206,7 +140,7 @@ func (g *XiGraph) XiGraphIter(index int64) {
 			for i = 0; i < pow2index_1; i++ {
 				nodeId := secondButter + i
 				parents := []int64{secondButter - pow2index_1 + i}
-				g.NewNode(nodeId, parents)
+				g.NewNodeP(nodeId, parents)
 				count++
 			}
 		} else {
@@ -221,8 +155,8 @@ func (g *XiGraph) XiGraphIter(index int64) {
 				parents1 := []int64{sinks - pow2index_1 + i,
 					sources + i + pow2index_1}
 
-				g.NewNode(nodeId0, parents0[:])
-				g.NewNode(nodeId1, parents1[:])
+				g.NewNodeP(nodeId0, parents0[:])
+				g.NewNodeP(nodeId1, parents1[:])
 				count += 2
 			}
 		}

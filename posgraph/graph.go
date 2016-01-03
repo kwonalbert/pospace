@@ -1,21 +1,19 @@
 package posgraph
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"os"
 	//"runtime/pprof"
 )
 
-const hashSize = 256 / 8
-const nodeSize = hashSize
-
 const (
 	XI  = iota
 	EGS = iota
 )
 
-type GraphParam struct {
+type Graph_ struct {
 	fn string
 	db *bolt.DB
 
@@ -26,8 +24,10 @@ type GraphParam struct {
 }
 
 type Graph interface {
-	NewNode(id int64, parents []int64)
-	GetParents(node, index int64) []int64
+	NewNodeP(id int64, parents []int64)
+	GetParents(id int64) []int64
+	NewNodeA(id int64, adjlist []int64)
+	GetAdjacency(id int64) []int64
 	GetSize() int64
 	GetDB() *bolt.DB
 	ChangeDB(*bolt.DB)
@@ -59,7 +59,14 @@ func NewGraph(t int, dir string, index int64) Graph {
 	}
 
 	db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucket([]byte("Graph"))
+		_, err := tx.CreateBucket([]byte("Parents"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		return nil
+	})
+	db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucket([]byte("Adjlist"))
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}
@@ -75,4 +82,112 @@ func NewGraph(t int, dir string, index int64) Graph {
 	g.ChangeDB(db)
 
 	return g
+}
+
+func (g *Graph_) NewNodeP(node int64, parents []int64) {
+	// header := *(*reflect.SliceHeader)(unsafe.Pointer(&parents))
+	// header.Len *= 8
+	// header.Cap *= 8
+	// data := *(*[]byte)(unsafe.Pointer(&header))
+	// log.Println("New node:", node, parents)
+
+	key := make([]byte, 8)
+	binary.PutVarint(key, node)
+	data := make([]byte, len(parents)*8)
+	for i := range parents {
+		binary.PutVarint(data[i*8:(i+1)*8], parents[i])
+	}
+
+	g.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Parents"))
+		err := b.Put(key, data)
+		return err
+	})
+}
+
+func (g *Graph_) NewNodeA(id int64, adjlist []int64) {
+	// header := *(*reflect.SliceHeader)(unsafe.Pointer(&parents))
+	// header.Len *= 8
+	// header.Cap *= 8
+	// data := *(*[]byte)(unsafe.Pointer(&header))
+	// log.Println("New node:", id, parents)
+
+	key := make([]byte, 8)
+	binary.PutVarint(key, id)
+	data := make([]byte, len(adjlist)*8)
+	for i := range adjlist {
+		binary.PutVarint(data[i*8:(i+1)*8], adjlist[i])
+	}
+
+	g.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Adjlist"))
+		err := b.Put(key, data)
+		return err
+	})
+}
+
+func (g *Graph_) GetParents(id int64) []int64 {
+	if id < int64(1<<uint64(g.index)) {
+		return nil
+	}
+
+	key := make([]byte, 8)
+	binary.PutVarint(key, id)
+
+	var data []byte
+	g.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Parents"))
+		data = b.Get(key)
+		return nil
+	})
+
+	parents := make([]int64, len(data)/8)
+	for i := range parents {
+		parents[i], _ = binary.Varint(data[i*8 : (i+1)*8])
+	}
+
+	return parents
+}
+
+func (g *Graph_) GetAdjacency(id int64) []int64 {
+	if id < int64(1<<uint64(g.index)) {
+		return nil
+	}
+
+	key := make([]byte, 8)
+	binary.PutVarint(key, id)
+
+	var data []byte
+	g.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Adjlist"))
+		data = b.Get(key)
+		return nil
+	})
+
+	adjlist := make([]int64, len(data)/8)
+	for i := range adjlist {
+		adjlist[i], _ = binary.Varint(data[i*8 : (i+1)*8])
+	}
+
+	return adjlist
+}
+
+func (g *Graph_) GetSize() int64 {
+	return g.size
+}
+
+func (g *Graph_) GetDB() *bolt.DB {
+	return g.db
+}
+
+func (g *Graph_) GetType() int {
+	return XI
+}
+
+func (g *Graph_) ChangeDB(db *bolt.DB) {
+	g.db = db
+}
+
+func (g *Graph_) Close() {
+	g.db.Close()
 }

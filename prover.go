@@ -86,7 +86,7 @@ func (p *Prover) PutHash(id int64, data []byte) {
 func (p *Prover) initGraph() {
 	for i := int64(0); i < p.size; i++ {
 		var ph []byte
-		parents := p.graph.GetParents(i, p.index)
+		parents := p.graph.GetParents(i)
 		for _, parent := range parents {
 			pid := util.BfsToPost(p.pow2, p.log2, parent+p.pow2)
 			ph = append(ph, p.GetHash(pid)...)
@@ -233,7 +233,7 @@ func (p *Prover) ProveSpace(challenges []int64) ([][]byte, [][][]byte, [][][]byt
 	pProofs := make([][][][]byte, len(challenges))
 	for i := range challenges {
 		hashes[i], proofs[i] = p.Open(challenges[i])
-		ps := p.graph.GetParents(challenges[i], p.index)
+		ps := p.graph.GetParents(challenges[i])
 		for _, parent := range ps {
 			if parent != -1 {
 				hash, proof := p.Open(parent)

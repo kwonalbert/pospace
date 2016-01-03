@@ -78,7 +78,7 @@ func (v *Verifier) VerifySpace(challenges []int64, hashes [][]byte, parents [][]
 			return false
 		}
 
-		ps := v.graph.GetParents(challenges[i], v.index)
+		ps := v.graph.GetParents(challenges[i])
 		for j := range ps {
 			if !v.Verify(ps[j], parents[i][j], pProofs[i][j]) {
 				return false

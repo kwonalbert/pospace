@@ -1,6 +1,8 @@
 package util
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"math/big"
 )
 
@@ -88,4 +90,67 @@ func BfsToPost(pow2, log2, node int64) int64 {
 	}
 	res += 2*pow2 - 1
 	return res
+}
+
+func Min(x, y int64) int64 {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func Max(x, y int64) int64 {
+	if x > y {
+		return x
+	}
+	return y
+}
+
+// return n values that ranges [l, u-1]
+func NRandRange(l, u, n int64) []int64 {
+	seen := make([]bool, u-l)
+	vals := make([]int64, n)
+	for i := range seen {
+		seen[i] = false
+	}
+	count := int64(0)
+	for count < n {
+		buf := make([]byte, 8)
+		_, err := rand.Read(buf)
+		if err != nil {
+			panic(err)
+		}
+		v, _ := binary.Uvarint(buf)
+		val := int64(v % (uint64(u - l)))
+		if val < 0 {
+			panic("negative index")
+		}
+		if !seen[val] {
+			seen[val] = true
+			vals[count] = val + l
+			count++
+		}
+	}
+	return vals
+}
+
+func Union(l1, l2 []int64) []int64 {
+	seen := make(map[int64]bool)
+	u := make([]int64, len(l1)+len(l2))
+	count := 0
+	for i := range l1 {
+		if _, ok := seen[l1[i]]; ok {
+			u[count] = l1[i]
+			seen[l1[i]] = true
+			count++
+		}
+	}
+	for i := range l2 {
+		if _, ok := seen[l2[i]]; ok {
+			u[count] = l2[i]
+			seen[l2[i]] = true
+			count++
+		}
+	}
+	return u
 }
