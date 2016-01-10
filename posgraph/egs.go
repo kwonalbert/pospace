@@ -1,6 +1,7 @@
 package posgraph
 
 import (
+	//"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/kwonalbert/pospace/util"
 	// "golang.org/x/crypto/sha3"
@@ -12,28 +13,43 @@ type EGSGraph struct {
 
 // generate graph according to "On sparse graphs with dense long paths"
 func NewEGSGraph(t int, gen bool, index int64, db *bolt.DB) *EGSGraph {
-	return nil
+	g := &EGSGraph{
+		Graph_{
+			index: index,
+			size:  int64(1 << uint64(index)),
+			t:     EGS,
+		},
+	}
+
+	g.pow2 = g.size
+	g.log2 = index
+	g.db = db
+
+	if gen {
+		g.EGSGraph(index)
+	}
+
+	return g
 }
 
-func dGraph(index, v, m int64) []int64 {
-	pow2 := int64(1 << uint64(index))
+func (g *EGSGraph) dGraph(v, m int64) []int64 {
 	var d []int64
-	for i := v; i < util.Min(pow2, v+m-1); i++ {
+	for i := v; i < util.Min(g.pow2, v+m-1); i++ {
 		d = append(d, i)
 	}
 	return d
 }
 
-func (g *EGSGraph) EGSGraphIter(index int64) {
+func (g *EGSGraph) EGSGraph(index int64) {
 	// create 2^n-1 vertices, and edges
 	// (i) from the paper
 	pow2 := int64(1 << uint64(index))
 	for i := int64(0); i < pow2; i++ {
-		var parents []int64
-		for j := util.Max(i-4*index+1, 0); j < i; j++ {
-			parents = append(parents, j)
+		var adjlist []int64
+		for j := i + 1; j < util.Min(pow2, i+4*index); j++ {
+			adjlist = append(adjlist, j)
 		}
-		g.NewNodeP(i, parents)
+		g.NewNodeA(i, adjlist)
 	}
 
 	// (ii) from the paper
@@ -43,16 +59,16 @@ func (g *EGSGraph) EGSGraphIter(index int64) {
 	}
 
 	for t := tBound; t < index; t++ {
+		tpow2 := int64(1 << uint64(t))
 		for m := int64(0); m < int64(1<<uint64(index-tBound)); m++ {
 			for i := int64(1); i <= 10; i++ {
-				tpow2 := int64(1 << uint64(t))
 				if (m+i)*tpow2 > pow2 {
 					continue
 				}
-				//TODO: figure out what this is really..
-				ep1 := float64(0.99)
-				srcs := dGraph(index, m*tpow2, tpow2)
-				sinks := dGraph(index, (m+1)*tpow2, tpow2)
+				//TODO: figure out what ep1 is really..
+				ep1 := float64(0.88)
+				srcs := g.dGraph(m*tpow2, tpow2)
+				sinks := g.dGraph((m+1)*tpow2, tpow2)
 				g.BipartiteGraph(srcs, sinks, ep1)
 			}
 		}
@@ -63,10 +79,6 @@ func (g *EGSGraph) EGSGraphIter(index int64) {
 // TODO: currently generates a random bipartite graph
 //       should check if the generated graph satisfies the properties
 func (g *EGSGraph) BipartiteGraph(srcs, sinks []int64, delta float64) {
-	if len(srcs) != len(sinks) {
-		panic("srcs and sinks need to be the same size!")
-	}
-
 	numEdges := int64(delta * float64(len(sinks)))
 
 	for _, s := range srcs {

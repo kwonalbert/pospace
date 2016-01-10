@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"math/big"
+	"sort"
 )
 
 // return: x^y
@@ -106,10 +107,16 @@ func Max(x, y int64) int64 {
 	return y
 }
 
-// return n values that ranges [l, u-1]
+type int64arr []int64
+
+func (a int64arr) Len() int           { return len(a) }
+func (a int64arr) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a int64arr) Less(i, j int) bool { return a[i] < a[j] }
+
+// return n values that ranges [l, u-1], sorted
 func NRandRange(l, u, n int64) []int64 {
 	seen := make([]bool, u-l)
-	vals := make([]int64, n)
+	var vals int64arr = make([]int64, n)
 	for i := range seen {
 		seen[i] = false
 	}
@@ -122,35 +129,48 @@ func NRandRange(l, u, n int64) []int64 {
 		}
 		v, _ := binary.Uvarint(buf)
 		val := int64(v % (uint64(u - l)))
-		if val < 0 {
-			panic("negative index")
-		}
 		if !seen[val] {
 			seen[val] = true
 			vals[count] = val + l
 			count++
 		}
 	}
+	sort.Sort(vals)
 	return vals
 }
 
 func Union(l1, l2 []int64) []int64 {
 	seen := make(map[int64]bool)
-	u := make([]int64, len(l1)+len(l2))
-	count := 0
-	for i := range l1 {
-		if _, ok := seen[l1[i]]; ok {
-			u[count] = l1[i]
-			seen[l1[i]] = true
-			count++
+	var u []int64
+	i := 0
+	j := 0
+	for i < len(l1) && j < len(l2) {
+		var add int64
+		if l1[i] <= l2[j] {
+			add = l1[i]
+			i++
+		} else {
+			add = l2[j]
+			j++
+		}
+		if _, ok := seen[add]; !ok {
+			u = append(u, add)
+			seen[add] = true
 		}
 	}
-	for i := range l2 {
-		if _, ok := seen[l2[i]]; ok {
-			u[count] = l2[i]
-			seen[l2[i]] = true
-			count++
+	for i < len(l1) {
+		if _, ok := seen[l1[i]]; !ok {
+			u = append(u, l1[i])
+			seen[l1[i]] = true
 		}
+		i++
+	}
+	for j < len(l2) {
+		if _, ok := seen[l2[j]]; !ok {
+			u = append(u, l2[j])
+			seen[l2[j]] = true
+		}
+		j++
 	}
 	return u
 }

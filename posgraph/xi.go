@@ -18,6 +18,7 @@ func NewXiGraph(t int, gen bool, index int64, db *bolt.DB) *XiGraph {
 		Graph_{
 			index: index,
 			size:  numXi(index),
+			t:     XI,
 		},
 	}
 
@@ -35,7 +36,7 @@ func NewXiGraph(t int, gen bool, index int64, db *bolt.DB) *XiGraph {
 	g.db = db
 
 	if gen {
-		g.XiGraphIter(index)
+		g.XiGraph(index)
 	}
 
 	return g
@@ -76,7 +77,7 @@ func (g *XiGraph) butterflyGraph(index int64, count *int64) {
 }
 
 // Iterative generation of the graph
-func (g *XiGraph) XiGraphIter(index int64) {
+func (g *XiGraph) XiGraph(index int64) {
 	count := int64(0)
 
 	stack := []int64{index, index, index, index, index}

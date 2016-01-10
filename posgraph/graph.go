@@ -21,6 +21,8 @@ type Graph_ struct {
 	log2  int64
 	pow2  int64
 	size  int64
+
+	t int //type of the graph
 }
 
 type Graph interface {
@@ -73,7 +75,12 @@ func NewGraph(t int, dir string, index int64) Graph {
 		return nil
 	})
 
-	g := NewXiGraph(t, !fileExists, index, db)
+	var g Graph
+	if t == XI {
+		g = NewXiGraph(t, !fileExists, index, db)
+	} else {
+		g = NewEGSGraph(t, !fileExists, index, db)
+	}
 	g.Close()
 	db, err = bolt.Open(fn, 0600, &bolt.Options{ReadOnly: true})
 	if err != nil {
@@ -127,7 +134,8 @@ func (g *Graph_) NewNodeA(id int64, adjlist []int64) {
 }
 
 func (g *Graph_) GetParents(id int64) []int64 {
-	if id < int64(1<<uint64(g.index)) {
+	// first pow2 nodes are srcs in XI
+	if g.t == XI && id < int64(1<<uint64(g.index)) {
 		return nil
 	}
 
@@ -137,7 +145,9 @@ func (g *Graph_) GetParents(id int64) []int64 {
 	var data []byte
 	g.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Parents"))
-		data = b.Get(key)
+		d := b.Get(key)
+		data = make([]byte, len(d))
+		copy(data, d)
 		return nil
 	})
 
@@ -150,17 +160,15 @@ func (g *Graph_) GetParents(id int64) []int64 {
 }
 
 func (g *Graph_) GetAdjacency(id int64) []int64 {
-	if id < int64(1<<uint64(g.index)) {
-		return nil
-	}
-
 	key := make([]byte, 8)
 	binary.PutVarint(key, id)
 
 	var data []byte
 	g.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Adjlist"))
-		data = b.Get(key)
+		d := b.Get(key)
+		data = make([]byte, len(d))
+		copy(data, d)
 		return nil
 	})
 

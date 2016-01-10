@@ -19,13 +19,13 @@ var graphDir string = ""
 var log2 int64
 var pow2 int64
 
-func TestGen(t *testing.T) {
+func TestXi(t *testing.T) {
 	now := time.Now()
 	_ = NewGraph(XI, graphDir, index)
 	log.Printf("%d. Graph gen: %fs\n", index, time.Since(now).Seconds())
 
 	// graph.GetDB().View(func(tx *bolt.Tx) error {
-	// 	b := tx.Bucket([]byte("Graph"))
+	// 	b := tx.Bucket([]byte("Parents"))
 	// 	c := b.Cursor()
 
 	// 	for k, v := c.First(); k != nil; k, v = c.Next() {
@@ -34,6 +34,28 @@ func TestGen(t *testing.T) {
 	// 		for i := range parents {
 	// 			parents[i], _ = binary.Varint(v[i*8 : (i+1)*8])
 	// 		}
+	// 	}
+
+	// 	return nil
+	// })
+}
+
+func TestEGS(t *testing.T) {
+	now := time.Now()
+	_ = NewGraph(EGS, graphDir, index)
+	log.Printf("%d. Graph gen: %fs\n", index, time.Since(now).Seconds())
+
+	// graph.GetDB().View(func(tx *bolt.Tx) error {
+	// 	b := tx.Bucket([]byte("Adjlist"))
+	// 	c := b.Cursor()
+
+	// 	for k, v := c.First(); k != nil; k, v = c.Next() {
+	// 		key, _ := binary.Varint(k)
+	// 		adjlist := make([]int64, len(v)/8)
+	// 		for i := range adjlist {
+	// 			adjlist[i], _ = binary.Varint(v[i*8 : (i+1)*8])
+	// 		}
+	// 		log.Println(key, ":", adjlist)
 	// 	}
 
 	// 	return nil
