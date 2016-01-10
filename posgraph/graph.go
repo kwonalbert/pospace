@@ -13,9 +13,14 @@ const (
 	EGS = iota
 )
 
+// creating another DB type so it's easier to change underlying DB later
+type DB struct {
+	db *bolt.DB
+}
+
 type Graph_ struct {
 	fn string
-	db *bolt.DB
+	db DB
 
 	index int64
 	log2  int64
@@ -31,8 +36,8 @@ type Graph interface {
 	NewNodeA(id int64, adjlist []int64)
 	GetAdjacency(id int64) []int64
 	GetSize() int64
-	GetDB() *bolt.DB
-	ChangeDB(*bolt.DB)
+	GetDB() DB
+	ChangeDB(DB)
 	Close()
 }
 
@@ -77,16 +82,16 @@ func NewGraph(t int, dir string, index int64) Graph {
 
 	var g Graph
 	if t == XI {
-		g = NewXiGraph(t, !fileExists, index, db)
-	} else {
-		g = NewEGSGraph(t, !fileExists, index, db)
+		g = NewXiGraph(t, !fileExists, index, DB{db})
+	} else if t == EGS {
+		g = NewEGSGraph(t, !fileExists, index, DB{db})
 	}
 	g.Close()
 	db, err = bolt.Open(fn, 0600, &bolt.Options{ReadOnly: true})
 	if err != nil {
 		panic("Failed to open database")
 	}
-	g.ChangeDB(db)
+	g.ChangeDB(DB{db})
 
 	return g
 }
@@ -105,7 +110,7 @@ func (g *Graph_) NewNodeP(node int64, parents []int64) {
 		binary.PutVarint(data[i*8:(i+1)*8], parents[i])
 	}
 
-	g.db.Update(func(tx *bolt.Tx) error {
+	g.db.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Parents"))
 		err := b.Put(key, data)
 		return err
@@ -126,7 +131,7 @@ func (g *Graph_) NewNodeA(id int64, adjlist []int64) {
 		binary.PutVarint(data[i*8:(i+1)*8], adjlist[i])
 	}
 
-	g.db.Update(func(tx *bolt.Tx) error {
+	g.db.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Adjlist"))
 		err := b.Put(key, data)
 		return err
@@ -143,7 +148,7 @@ func (g *Graph_) GetParents(id int64) []int64 {
 	binary.PutVarint(key, id)
 
 	var data []byte
-	g.db.View(func(tx *bolt.Tx) error {
+	g.db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Parents"))
 		d := b.Get(key)
 		data = make([]byte, len(d))
@@ -164,7 +169,7 @@ func (g *Graph_) GetAdjacency(id int64) []int64 {
 	binary.PutVarint(key, id)
 
 	var data []byte
-	g.db.View(func(tx *bolt.Tx) error {
+	g.db.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Adjlist"))
 		d := b.Get(key)
 		data = make([]byte, len(d))
@@ -184,7 +189,7 @@ func (g *Graph_) GetSize() int64 {
 	return g.size
 }
 
-func (g *Graph_) GetDB() *bolt.DB {
+func (g *Graph_) GetDB() DB {
 	return g.db
 }
 
@@ -192,10 +197,10 @@ func (g *Graph_) GetType() int {
 	return XI
 }
 
-func (g *Graph_) ChangeDB(db *bolt.DB) {
+func (g *Graph_) ChangeDB(db DB) {
 	g.db = db
 }
 
 func (g *Graph_) Close() {
-	g.db.Close()
+	g.db.db.Close()
 }

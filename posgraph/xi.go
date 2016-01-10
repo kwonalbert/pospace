@@ -1,7 +1,6 @@
 package posgraph
 
 import (
-	"github.com/boltdb/bolt"
 	"github.com/kwonalbert/pospace/util"
 	//"log"
 
@@ -13,7 +12,7 @@ type XiGraph struct {
 	Graph_
 }
 
-func NewXiGraph(t int, gen bool, index int64, db *bolt.DB) *XiGraph {
+func NewXiGraph(t int, gen bool, index int64, db DB) *XiGraph {
 	g := &XiGraph{
 		Graph_{
 			index: index,

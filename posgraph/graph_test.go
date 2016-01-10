@@ -24,7 +24,7 @@ func TestXi(t *testing.T) {
 	_ = NewGraph(XI, graphDir, index)
 	log.Printf("%d. Graph gen: %fs\n", index, time.Since(now).Seconds())
 
-	// graph.GetDB().View(func(tx *bolt.Tx) error {
+	// graph.GetDB().db.View(func(tx *bolt.Tx) error {
 	// 	b := tx.Bucket([]byte("Parents"))
 	// 	c := b.Cursor()
 
@@ -45,7 +45,7 @@ func TestEGS(t *testing.T) {
 	_ = NewGraph(EGS, graphDir, index)
 	log.Printf("%d. Graph gen: %fs\n", index, time.Since(now).Seconds())
 
-	// graph.GetDB().View(func(tx *bolt.Tx) error {
+	// graph.GetDB().db.View(func(tx *bolt.Tx) error {
 	// 	b := tx.Bucket([]byte("Adjlist"))
 	// 	c := b.Cursor()
 

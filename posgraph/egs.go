@@ -2,7 +2,6 @@ package posgraph
 
 import (
 	//"fmt"
-	"github.com/boltdb/bolt"
 	"github.com/kwonalbert/pospace/util"
 	// "golang.org/x/crypto/sha3"
 )
@@ -12,7 +11,7 @@ type EGSGraph struct {
 }
 
 // generate graph according to "On sparse graphs with dense long paths"
-func NewEGSGraph(t int, gen bool, index int64, db *bolt.DB) *EGSGraph {
+func NewEGSGraph(t int, gen bool, index int64, db DB) *EGSGraph {
 	g := &EGSGraph{
 		Graph_{
 			index: index,
