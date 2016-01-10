@@ -6,11 +6,14 @@ import (
 	"github.com/boltdb/bolt"
 	"os"
 	//"runtime/pprof"
+	// "reflect"
+	// "unsafe"
 )
 
 const (
-	XI  = iota
-	EGS = iota
+	XI   = iota
+	EGS  = iota
+	FULL = iota
 )
 
 // creating another DB type so it's easier to change underlying DB later
@@ -84,6 +87,7 @@ func NewGraph(t int, dir string, index int64) Graph {
 	if t == XI {
 		g = NewXiGraph(t, !fileExists, index, DB{db})
 	} else if t == EGS {
+		//'index' for EGS is overloaded to be size
 		g = NewEGSGraph(t, !fileExists, index, DB{db})
 	}
 	g.Close()

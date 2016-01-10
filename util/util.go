@@ -113,6 +113,17 @@ func (a int64arr) Len() int           { return len(a) }
 func (a int64arr) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a int64arr) Less(i, j int) bool { return a[i] < a[j] }
 
+func Rand(bound int64) int64 {
+	buf := make([]byte, 8)
+	_, err := rand.Read(buf)
+	if err != nil {
+		panic(err)
+	}
+	v, _ := binary.Uvarint(buf)
+	res := int64(v % uint64(bound))
+	return res
+}
+
 // return n values that ranges [l, u-1], sorted
 func NRandRange(l, u, n int64) []int64 {
 	seen := make([]bool, u-l)
@@ -122,13 +133,7 @@ func NRandRange(l, u, n int64) []int64 {
 	}
 	count := int64(0)
 	for count < n {
-		buf := make([]byte, 8)
-		_, err := rand.Read(buf)
-		if err != nil {
-			panic(err)
-		}
-		v, _ := binary.Uvarint(buf)
-		val := int64(v % (uint64(u - l)))
+		val := Rand(u - l)
 		if !seen[val] {
 			seen[val] = true
 			vals[count] = val + l

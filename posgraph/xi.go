@@ -3,9 +3,6 @@ package posgraph
 import (
 	"github.com/kwonalbert/pospace/util"
 	//"log"
-
-	// "reflect"
-	// "unsafe"
 )
 
 type XiGraph struct {
@@ -35,7 +32,7 @@ func NewXiGraph(t int, gen bool, index int64, db DB) *XiGraph {
 	g.db = db
 
 	if gen {
-		g.XiGraph(index)
+		g.XiGraph()
 	}
 
 	return g
@@ -76,25 +73,25 @@ func (g *XiGraph) butterflyGraph(index int64, count *int64) {
 }
 
 // Iterative generation of the graph
-func (g *XiGraph) XiGraph(index int64) {
+func (g *XiGraph) XiGraph() {
 	count := int64(0)
 
-	stack := []int64{index, index, index, index, index}
+	stack := []int64{g.index, g.index, g.index, g.index, g.index}
 	graphStack := []int{4, 3, 2, 1, 0}
 
 	var i int64
 	graph := 0
-	pow2index := int64(1 << uint64(index))
-	for i = 0; i < pow2index; i++ { //sources at this level
+	for i = 0; i < g.pow2; i++ { //sources at this level
 		g.NewNodeP(count, nil)
 		count++
 	}
 
-	if index == 1 {
-		g.butterflyGraph(index, &count)
+	if g.index == 1 {
+		g.butterflyGraph(g.index, &count)
 		return
 	}
 
+	var index int64
 	for len(stack) != 0 && len(graphStack) != 0 {
 		index, stack = stack[len(stack)-1], stack[:len(stack)-1]
 		graph, graphStack = graphStack[len(graphStack)-1], graphStack[:len(graphStack)-1]

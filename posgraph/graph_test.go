@@ -1,10 +1,9 @@
 package posgraph
 
 import (
-	//"encoding/binary"
+	"encoding/binary"
 	"flag"
-	//"fmt"
-	//"github.com/boltdb/bolt"
+	"github.com/boltdb/bolt"
 	"github.com/kwonalbert/pospace/util"
 	"log"
 	"os"
@@ -42,24 +41,24 @@ func TestXi(t *testing.T) {
 
 func TestEGS(t *testing.T) {
 	now := time.Now()
-	_ = NewGraph(EGS, graphDir, index)
+	graph := NewGraph(EGS, graphDir, index)
 	log.Printf("%d. Graph gen: %fs\n", index, time.Since(now).Seconds())
 
-	// graph.GetDB().db.View(func(tx *bolt.Tx) error {
-	// 	b := tx.Bucket([]byte("Adjlist"))
-	// 	c := b.Cursor()
+	graph.GetDB().db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Adjlist"))
+		c := b.Cursor()
 
-	// 	for k, v := c.First(); k != nil; k, v = c.Next() {
-	// 		key, _ := binary.Varint(k)
-	// 		adjlist := make([]int64, len(v)/8)
-	// 		for i := range adjlist {
-	// 			adjlist[i], _ = binary.Varint(v[i*8 : (i+1)*8])
-	// 		}
-	// 		log.Println(key, ":", adjlist)
-	// 	}
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			key, _ := binary.Varint(k)
+			adjlist := make([]int64, len(v)/8)
+			for i := range adjlist {
+				adjlist[i], _ = binary.Varint(v[i*8 : (i+1)*8])
+			}
+			log.Println(key, ":", adjlist)
+		}
 
-	// 	return nil
-	// })
+		return nil
+	})
 }
 
 func TestMain(m *testing.M) {

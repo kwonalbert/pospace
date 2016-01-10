@@ -16,10 +16,8 @@ type Prover struct {
 	commit []byte   // root hash of the merkle tree
 	space  *os.File // file that stores all hashes
 
-	index int64 // index of the graphy in the family; power of 2
-	size  int64 // size of the graph
-	pow2  int64 // next closest power of 2
-	log2  int64 // next closest log
+	pow2  int64 // next closest power of 2 of size
+	log2  int64 // log2 of pow2
 	empty map[int64]bool
 }
 
@@ -57,8 +55,6 @@ func NewProver(pk []byte, index int64, graphDir, spaceDir string) *Prover {
 		graph: g,
 		space: f,
 
-		index: index,
-		size:  size,
 		pow2:  pow2,
 		log2:  log2,
 		empty: empty,
@@ -84,7 +80,7 @@ func (p *Prover) PutHash(id int64, data []byte) {
 
 // Assuming topo-sorted..
 func (p *Prover) initGraph() {
-	for i := int64(0); i < p.size; i++ {
+	for i := int64(0); i < p.graph.GetSize(); i++ {
 		var ph []byte
 		parents := p.graph.GetParents(i)
 		for _, parent := range parents {
@@ -170,7 +166,7 @@ func (p *Prover) generateMerkle() []byte {
 		}
 
 		if cur >= p.pow2 {
-			if cur >= p.pow2+p.size {
+			if cur >= p.pow2+p.graph.GetSize() {
 				hashStack = append(hashStack, make([]byte, hashSize))
 				count++
 			} else {
@@ -213,7 +209,7 @@ func (p *Prover) Open(node int64) ([]byte, [][]byte) {
 			sib = i - 1
 		}
 
-		if sib >= p.pow2+p.size || p.emptyMerkle(sib) {
+		if sib >= p.pow2+p.graph.GetSize() || p.emptyMerkle(sib) {
 			proof[count] = make([]byte, hashSize)
 		} else {
 			proof[count] = p.GetHash(util.BfsToPost(p.pow2, p.log2, sib))
