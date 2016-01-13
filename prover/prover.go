@@ -1,4 +1,4 @@
-package pospace
+package prover
 
 import (
 	"encoding/binary"
@@ -8,6 +8,8 @@ import (
 	"golang.org/x/crypto/sha3"
 	"os"
 )
+
+const hashSize = 32
 
 type Prover struct {
 	pk    []byte
@@ -27,7 +29,7 @@ type Commitment struct {
 }
 
 func NewProver(pk []byte, index int64, graphDir, spaceDir string) *Prover {
-	g := posgraph.NewGraph(XI, graphDir, index)
+	g := posgraph.NewGraph(posgraph.TYPE1, graphDir, index)
 
 	size := g.GetSize()
 	log2 := util.Log2(size) + 1
@@ -39,6 +41,7 @@ func NewProver(pk []byte, index int64, graphDir, spaceDir string) *Prover {
 
 	empty := make(map[int64]bool)
 	// if not power of 2, then uneven merkle
+	// mark all the empty ones
 	if util.Count(uint64(size)) != 1 {
 		for i := pow2 + size; util.Count(uint64(i+1)) != 1; i /= 2 {
 			empty[i+1] = true

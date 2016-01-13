@@ -20,7 +20,7 @@ var pow2 int64
 
 func TestXi(t *testing.T) {
 	now := time.Now()
-	_ = NewGraph(XI, graphDir, index)
+	_ = NewGraph(TYPE1, graphDir, index)
 	log.Printf("%d. Graph gen: %fs\n", index, time.Since(now).Seconds())
 
 	// graph.GetDB().db.View(func(tx *bolt.Tx) error {

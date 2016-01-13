@@ -5,16 +5,16 @@ import (
 	//"log"
 )
 
-type XiGraph struct {
+type Type1Graph struct {
 	Graph_
 }
 
-func NewXiGraph(t int, gen bool, index int64, db DB) *XiGraph {
-	g := &XiGraph{
+func NewType1Graph(t int, gen bool, index int64, db DB) *Type1Graph {
+	g := &Type1Graph{
 		Graph_{
 			index: index,
 			size:  numXi(index),
-			t:     XI,
+			t:     TYPE1,
 		},
 	}
 
@@ -32,7 +32,7 @@ func NewXiGraph(t int, gen bool, index int64, db DB) *XiGraph {
 	g.db = db
 
 	if gen {
-		g.XiGraph()
+		g.Type1Graph()
 	}
 
 	return g
@@ -42,7 +42,7 @@ func numXi(index int64) int64 {
 	return (1 << uint64(index)) * (index + 1) * index
 }
 
-func (g *XiGraph) butterflyGraph(index int64, count *int64) {
+func (g *Type1Graph) butterflyGraph(index int64, count *int64) {
 	if index == 0 {
 		index = 1
 	}
@@ -73,7 +73,8 @@ func (g *XiGraph) butterflyGraph(index int64, count *int64) {
 }
 
 // Iterative generation of the graph
-func (g *XiGraph) XiGraph() {
+// (exponential recursive calls take too long)
+func (g *Type1Graph) Type1Graph() {
 	count := int64(0)
 
 	stack := []int64{g.index, g.index, g.index, g.index, g.index}

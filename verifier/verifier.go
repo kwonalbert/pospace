@@ -1,4 +1,4 @@
-package pospace
+package verifier
 
 import (
 	"encoding/binary"
@@ -21,7 +21,7 @@ type Verifier struct {
 }
 
 func NewVerifier(pk []byte, index int64, beta int, root []byte, graphDir string) *Verifier {
-	graph := posgraph.NewGraph(XI, graphDir, index)
+	graph := posgraph.NewGraph(posgraph.TYPE1, graphDir, index)
 	size := graph.GetSize()
 	log2 := util.Log2(size) + 1
 	pow2 := int64(1 << uint64(log2))

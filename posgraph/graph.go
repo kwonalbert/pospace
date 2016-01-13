@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"github.com/boltdb/bolt"
 	"os"
-	//"runtime/pprof"
 	// "reflect"
 	// "unsafe"
 )
 
 const (
-	XI   = iota
-	EGS  = iota
-	FULL = iota
+	TYPE1 = iota
+	EGS   = iota
+	TYPE2 = iota
 )
 
 // creating another DB type so it's easier to change underlying DB later
@@ -49,10 +48,12 @@ type Graph interface {
 // Note that this graph will have O(2^index) nodes
 func NewGraph(t int, dir string, index int64) Graph {
 	var fn string
-	if t == XI {
-		fn = fmt.Sprintf("%s/XI-%d", dir, index)
-	} else {
+	if t == TYPE1 {
+		fn = fmt.Sprintf("%s/T1-%d", dir, index)
+	} else if t == EGS {
 		fn = fmt.Sprintf("%s/EGS-%d", dir, index)
+	} else if t == TYPE2 {
+		fn = fmt.Sprintf("%s/T2-%d", dir, index)
 	}
 
 	_, err := os.Stat(fn)
@@ -84,12 +85,16 @@ func NewGraph(t int, dir string, index int64) Graph {
 	})
 
 	var g Graph
-	if t == XI {
-		g = NewXiGraph(t, !fileExists, index, DB{db})
+	if t == TYPE1 {
+		g = NewType1Graph(t, !fileExists, index, DB{db})
 	} else if t == EGS {
 		//'index' for EGS is overloaded to be size
 		g = NewEGSGraph(t, !fileExists, index, DB{db})
+	} else if t == TYPE2 {
+		g = NewType2Graph(t, !fileExists, index, DB{db})
 	}
+
+	// a hack for testing; graph should be opened for read only after gen
 	g.Close()
 	db, err = bolt.Open(fn, 0600, &bolt.Options{ReadOnly: true})
 	if err != nil {
@@ -143,8 +148,8 @@ func (g *Graph_) NewNodeA(id int64, adjlist []int64) {
 }
 
 func (g *Graph_) GetParents(id int64) []int64 {
-	// first pow2 nodes are srcs in XI
-	if g.t == XI && id < int64(1<<uint64(g.index)) {
+	// first pow2 nodes are srcs in TYPE1
+	if g.t == TYPE1 && id < int64(1<<uint64(g.index)) {
 		return nil
 	}
 
@@ -198,7 +203,7 @@ func (g *Graph_) GetDB() DB {
 }
 
 func (g *Graph_) GetType() int {
-	return XI
+	return g.t
 }
 
 func (g *Graph_) ChangeDB(db DB) {
